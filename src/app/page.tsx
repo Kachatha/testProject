@@ -1,69 +1,206 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useMemo, useEffect } from "react";
+import { Person, FoodItem as FoodItemType, BillConfig, BillHistoryItem } from "../types"; 
+import { calculateBill } from "../utils/calculator";
+
+import BillSetup from "../components/BillSetup";
+import ParticipantManager from "../components/ParticipantManager";
+import FoodItem from "../components/FoodItem";
+import Summary from "../components/Summary";
+import BillHistory from "../components/History";
+import { Save, RefreshCw } from "lucide-react";
 
 export default function Home() {
+  const [config, setConfig] = useState<BillConfig>({
+    promptPay: "",
+    vat: 0,                  
+    serviceCharge: 0,       
+    rounding: "none",
+  });
+
+  const [persons, setPersons] = useState<Person[]>([]);
+  const [items, setItems] = useState<FoodItemType[]>([]);
+  const [history, setHistory] = useState<BillHistoryItem[]>([]);
+  const [billTitle, setBillTitle] = useState("");
+
+  // 1. โหลดข้อมูลเก่าที่เคยทำค้างไว้จาก LocalStorage เมื่อเปิดหน้าเว็บครั้งแรก
+  useEffect(() => {
+    const savedConfig = localStorage.getItem("sk_config");
+    const savedPersons = localStorage.getItem("sk_persons");
+    const savedItems = localStorage.getItem("sk_items");
+    const savedHistory = localStorage.getItem("sk_history");
+
+    if (savedConfig) setConfig(JSON.parse(savedConfig));
+    if (savedPersons) {
+      setPersons(JSON.parse(savedPersons));
+    } else {
+      // ค่าเริ่มต้นถ้าไม่มีข้อมูลเก่าในเครื่อง
+      setPersons([
+        { id: "1", name: "ฉันเอง" },
+        { id: "2", name: "เพื่อนคนที่ 2" },
+        { id: "3", name: "เพื่อนคนที่ 3" }
+      ]);
+    }
+    if (savedItems) setItems(JSON.parse(savedItems));
+    if (savedHistory) setHistory(JSON.parse(savedHistory));
+  }, []);
+
+  // 2. บันทึกข้อมูลสเตทหลักลง LocalStorage อัตโนมัติเมื่อมีการเปลี่ยนแปลง
+  useEffect(() => {
+    if (persons.length > 0) localStorage.setItem("sk_persons", JSON.stringify(persons));
+  }, [persons]);
+
+  useEffect(() => {
+    localStorage.setItem("sk_items", JSON.stringify(items));
+  }, [items]);
+
+  useEffect(() => {
+    localStorage.setItem("sk_config", JSON.stringify(config));
+  }, [config]);
+
+  // ฟังก์ชันเพิ่มรายการอาหาร (รองรับจำนวนชิ้นอาหาร)
+  const addItem = (name: string, price: number, quantity: number, sharedBy: string[]) => {
+    setItems((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        name,
+        price,
+        quantity, 
+        sharedBy,
+      },
+    ]);
+  };
+
+  // ฟังก์ชันลบรายการอาหารออกจากบิลปัจจุบัน
+  const removeItem = (id: string) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  // ฟังก์ชันลบชื่อเพื่อน และดักลบออกจากรายการอาหารที่เคยเลือกไว้ด้วย
+  const removePerson = (id: string) => {
+    setPersons(prev => prev.filter((p) => p.id !== id));
+    setItems(prev => prev.map(item => ({
+      ...item,
+      sharedBy: item.sharedBy.filter(personId => personId !== id)
+    })).filter(item => item.sharedBy.length > 0));
+  };
+
+  // เรียกฟังก์ชันประมวลผลคำนวณบิลอัตโนมัติ
+  const summaries = useMemo(() => {
+    return calculateBill(persons, items, config);
+  }, [persons, items, config]);
+
+  // ฟังก์ชันกดบันทึกบิลปัจจุบันลงหน้าประวัติย้อนหลัง
+  const handleSaveToHistory = () => {
+    if (items.length === 0) return;
+    const grandTotalFinal = summaries.reduce((acc, s) => acc + s.finalAmount, 0);
+    const newHistoryItem: BillHistoryItem = {
+      id: `hist-${Date.now()}`,
+      date: new Date().toLocaleDateString("th-TH", { hour: "2-digit", minute: "2-digit" }),
+      title: billTitle.trim() || `มื้ออาหารขนาดย่อม (${items.length} รายการ)`,
+      grandTotal: grandTotalFinal,
+      summaries: summaries as any // ป้องกันไทป์ขัดแย้งเวลานำไปเก็บลงอาเรย์ประวัติ
+    };
+
+    const updatedHistory = [newHistoryItem, ...history];
+    setHistory(updatedHistory);
+    localStorage.setItem("sk_history", JSON.stringify(updatedHistory));
+    
+    // เคลียร์รายการอาหารปัจจุบันเพื่อตั้งต้นบิลรอบใหม่
+    setItems([]);
+    setBillTitle("");
+    alert("บันทึกประวัติบิลเรียบร้อยแล้ว!");
+  };
+
+  // ฟังก์ชันลบประวัติบิลเก่าออก (เปลี่ยนชื่อใหม่เพื่อป้องกันการ Error ทับซ้อน)
+  const deleteHistoryItem = (id: string) => {
+    const updatedHistory = history.filter(h => h.id !== id);
+    setHistory(updatedHistory);
+    localStorage.setItem("sk_history", JSON.stringify(updatedHistory));
+  };
+
+  // ฟังก์ชันรีเซ็ตบิลปัจจุบันเริ่มต้นใหม่ทั้งหมด
+  const handleResetCurrentBill = () => {
+    if (window.confirm("คุณต้องการล้างรายการอาหารในบิลปัจจุบันทั้งหมดใช่หรือไม่?")) {
+      setItems([]);
+      setBillTitle("");
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    /* เติมคลาสระบบระบุตัวตนหลักให้สอดประสานกับหน้า CSS และกระชับหน้าจอ */
+    <main id="sharekub-main-layout" className="sharekub-container">
+            {/* 🚀 โลโก้/หัวข้อหลักของแอปพลิเคชัน (เวอร์ชันชุบชีวิตโลโก้แบบไม่ต้องพึ่งพาไฟล์รูปภาพ) */}
+      <div className="sharekub-header-section flex flex-col items-center justify-center gap-2">
+        <img 
+          src="/LOGO.png"
+          alt="Sharekub Logo"
+          className="w-16 h-16 object-contain rounded-2xl bg-white p-1"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+
+        <div className="text-center mt-1">
+          <h1 className="sharekub-title text-xl font-black text-slate-800 tracking-tight">Sharekub App</h1>
+          <p className="sharekub-subtitle text-[11px] text-slate-400 font-medium">คำนวณบิลหารค่าอาหารรายบุคคลพร้อมระบบบันทึกประวัติย้อนหลัง</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+      </div>
+
+
+      {/* 1. ตั้งค่าบิล (เบอร์พร้อมเพย์, ภาษี, ค่าบริการ) */}
+      <div className="sharekub-card-wrapper" id="step-bill-setup">
+        <BillSetup config={config} setConfig={setConfig} />
+      </div>
+      
+      {/* 2. ระบุจำนวนคนและกำหนดชื่อของแต่ละคน */}
+      <div className="sharekub-card-wrapper" id="step-participant-manager">
+        <ParticipantManager persons={persons} setPersons={setPersons} removePerson={removePerson} />
+      </div>
+      
+      {/* 3. เพิ่มรายการอาหาร / เมนูอาหารโปรด */}
+      <div className="sharekub-card-wrapper" id="step-food-item">
+        <FoodItem persons={persons} items={items} addItem={addItem} removeItem={removeItem} />
+      </div>
+      
+      {/* ส่วนกดปุ่มบันทึกเข้าประวัติ หรือ รีเซ็ตบิลปัจจุบัน (จะเด้งขึ้นมาเมื่อมีรายการอาหารในบิล) */}
+      {items.length > 0 && (
+        <div className="sharekub-action-box">
+          <input 
+            type="text" 
+            placeholder="ตั้งชื่อมื้อนี้ (เช่น ชาบูปิ้งย่าง, ส้มตำเจ๊ใจ)" 
+            value={billTitle}
+            onChange={e => setBillTitle(e.target.value)}
+            className="sharekub-input-title"
+          />
+          <div className="sharekub-btn-group">
+            <button onClick={handleSaveToHistory} className="sharekub-btn-save">
+              <Save size={14} /> บันทึกปิดบิลลงประวัติ
+            </button>
+            <button onClick={handleResetCurrentBill} className="sharekub-btn-reset" title="ล้างข้อมูลเริ่มใหม่">
+              <RefreshCw size={14} />
+            </button>
+          </div>
         </div>
-      </main>
-    </div>
+      )}
+
+      {/* 4. หน้าสรุปยอดปัจจุบันพร้อมคิวอาร์โค้ดสแกนจ่ายเงิน */}
+      <div className="sharekub-card-wrapper" id="step-summary">
+        <Summary summaries={summaries} promptPay={config.promptPay} />
+      </div>
+
+      {/* 5. แผงประวัติการหารบิลย้อนหลัง (ซ่อมแซมจุดเรียกใช้ ปลอดภัยจาก Error 100%) */}
+      <div className="sharekub-card-wrapper" id="step-history">
+        <BillHistory 
+          history={history as any} 
+          onRemoveHistory={(id: string) => deleteHistoryItem(id)} 
+        />
+      </div>
+
+      <p className="sharekub-footer-text">SHAREKUB DASHBOARD SYSTEM v2.0</p>
+    </main>
   );
 }
