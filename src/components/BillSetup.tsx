@@ -16,7 +16,6 @@ export default function BillSetup({ config, setConfig }: BillSetupProps) {
     <div className="space-y-4">
       <h2 className="text-sm font-bold text-slate-700 mb-2">ตั้งค่าระบบบิลชำระเงิน</h2>
 
-      {/* จัดเรียงพิกเซล Inputs ซ้อนดิ่งลื่นไหลตามแบบภาพที่ 2 ปรับปรุงความคลีน */}
       <div className="space-y-3.5">
         <div>
           <label className="block text-xs font-semibold text-slate-500 mb-1.5">เบอร์ PromptPay (สำหรับทำ QR Code สแกนจ่าย):</label>
@@ -27,6 +26,9 @@ export default function BillSetup({ config, setConfig }: BillSetupProps) {
             onChange={(e) => handleChange("promptPay", e.target.value)}
             className="w-full"
           />
+          <p className="text-[10px] text-emerald-600 mt-1.5 flex items-center gap-1">
+            🔒 ข้อมูลเบอร์โทรจะถูกบันทึกไว้ในเครื่องของคุณเท่านั้น
+          </p>
         </div>
 
         <div>
@@ -52,22 +54,25 @@ export default function BillSetup({ config, setConfig }: BillSetupProps) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-500 mb-1.5">การปัดเศษทศนิยม (Rounding)</label>
-          <div className="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-xl">
+          <label className="block text-xs font-semibold text-slate-500 mb-1">วิธีปัดเศษยอดเงิน (Rounding)</label>
+          <p className="text-[10px] text-slate-400 mb-2">ช่วยให้โอนเงินง่ายขึ้นโดยการปัดเศษยอดของแต่ละคนให้เป็นจำนวนเต็ม</p>
+          
+          {/* 🌟 เปลี่ยนแถบปุ่มปัดเศษให้เป็นทรงแคปซูล (Rounded-full) */}
+          <div className="grid grid-cols-3 gap-2 bg-slate-100/80 p-1.5 rounded-2xl">
             {(["none", "tens", "hundreds"] as const).map((type) => {
-              const labelMap = { none: "ไม่ปัดเศษ", tens: "ปัดขึ้นหลักสิบ", hundreds: "ปัดขึ้นหลักร้อย" };
+              const labelMap = { none: "ไม่ปัดเศษ", tens: "ปัดเป็นหลักสิบ", hundreds: "ปัดเป็นหลักร้อย" };
               const isActive = config.rounding === type;
               return (
                 <button
                   key={type}
                   type="button"
                   onClick={() => handleChange("rounding", type)}
-                  className="text-xs py-2 px-1 font-bold rounded-lg transition-all duration-150 select-none cursor-pointer"
+                  className="text-xs py-2.5 px-2 font-bold rounded-full transition-all duration-150 select-none cursor-pointer"
                   style={{
-                    backgroundColor: isActive ? "#fff7ed" : "#ffffff",
-                    color: isActive ? "#ea580c" : "#475569",
-                    border: isActive ? "2px solid #f97316" : "1px solid #e2e8f0",
-                    boxShadow: isActive ? "0 4px 10px rgba(249, 115, 22, 0.05)" : "none"
+                    backgroundColor: isActive ? "#ffffff" : "transparent",
+                    color: isActive ? "#ea580c" : "#64748b",
+                    border: isActive ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid transparent",
+                    boxShadow: isActive ? "0 4px 12px rgba(249, 115, 22, 0.08)" : "none"
                   }}
                 >
                   {labelMap[type]}

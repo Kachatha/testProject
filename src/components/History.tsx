@@ -20,7 +20,7 @@ export default function BillHistory({ history, onRemoveHistory }: BillHistoryPro
         <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
           <History size={18} />
         </div>
-        <h2 className="text-sm font-bold text-slate-700">📜 ประวัติการหารบิลย้อนหลัง</h2>
+        <h2 className="text-sm font-bold text-slate-700"> ประวัติการหารบิลย้อนหลัง</h2>
       </div>
 
       <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
@@ -34,7 +34,7 @@ export default function BillHistory({ history, onRemoveHistory }: BillHistoryPro
                 className="flex items-center justify-between p-3 cursor-pointer hover:bg-slate-50/50 transition-all"
               >
                 <div className="space-y-0.5">
-                  <span className="text-xs font-bold text-slate-700 block">🛍️ {item.title}</span>
+                  <span className="text-xs font-bold text-slate-700 block"> {item.title}</span>
                   <div className="text-[9px] text-slate-400 flex items-center gap-2">
                     <span className="flex items-center gap-0.5"><Calendar size={10} /> {item.date}</span>
                     <span className="flex items-center gap-0.5"><CreditCard size={10} /> ยอดรวม: {item.grandTotal.toFixed(2)} บ.</span>
@@ -58,7 +58,7 @@ export default function BillHistory({ history, onRemoveHistory }: BillHistoryPro
                   <div className="font-bold text-[10px] text-slate-400">สรุปยอดชำระรายบุคคลในบิลนี้:</div>
                   {item.summaries.map((s) => (
                     <div key={s.person.id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100">
-                      <span className="font-medium">👤 {s.person.name}</span>
+                      <span className="font-medium"> {s.person.name}</span>
                       <strong className="text-emerald-600">฿{s.finalAmount.toFixed(2)}</strong>
                     </div>
                   ))}

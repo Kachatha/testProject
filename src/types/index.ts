@@ -45,3 +45,11 @@ export interface FavoriteShop {
   name: string;
   menus: FavoriteMenu[]; // เก็บรายการอาหารโปรดภายในร้านนั้นๆ
 }
+export interface PersonSummary {
+  person: Person;
+  totalBeforeTax: number;
+  totalWithTax: number;
+  finalAmount: number; 
+  roundingAdjustment: number; 
+  items: { name: string; cost: number }[];
+}

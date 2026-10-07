@@ -5,7 +5,6 @@ export const calculateBill = (
   items: FoodItem[],
   config: BillConfig
 ): PersonSummary[] => {
-  // 1. สร้างสรุปยอดเบื้องต้นให้ทุกคนเป็น 0 (เพิ่ม items: [] เพื่อแก้ Error พิมพ์เขียวไม่ครบ)
   let summaries: Record<string, PersonSummary> = {};
   persons.forEach(p => {
     summaries[p.id] = {
@@ -13,14 +12,13 @@ export const calculateBill = (
       totalBeforeTax: 0,
       totalWithTax: 0,
       finalAmount: 0,
-      items: [], // ✨ เพิ่มตรงนี้เพื่อแก้ขัดแย้งของ Type
+      roundingAdjustment: 0,
+      items: [],
     };
   });
 
-  // 2. คำนวณค่าอาหารแต่ละเมนู หารตามจำนวนคนกิน
   items.forEach(item => {
     if (item.sharedBy.length > 0) {
-      // เปลี่ยนตรงนี้: นำราคาคูณด้วยจำนวนชิ้น (item.quantity) ก่อนหาร
       const totalPrice = item.price * (item.quantity || 1);
       const splitPrice = totalPrice / item.sharedBy.length;
       
@@ -28,37 +26,36 @@ export const calculateBill = (
         if (summaries[personId]) {
           summaries[personId].totalBeforeTax += splitPrice;
           summaries[personId].items.push({
-            name: `${item.name} x${item.quantity || 1}`, // แสดงจำนวนในใบเสร็จย่อย
+            name: `${item.name} x${item.quantity || 1}`,
             cost: splitPrice
           });
         }
       });
     }
   });
-  // 3. คิด SC, VAT และปัดเศษ
+
   return Object.values(summaries).map(summary => {
     let currentTotal = summary.totalBeforeTax;
 
-    // บวก Service Charge
     if (config.serviceCharge > 0) {
       currentTotal += currentTotal * (config.serviceCharge / 100);
     }
 
-    // บวก VAT
     if (config.vat > 0) {
       currentTotal += currentTotal * (config.vat / 100);
     }
 
     summary.totalWithTax = currentTotal;
 
-    // การปัดเศษ (Rounding) ปรับคีย์ให้แมตช์ตามค่าที่เลือกจากหน้าเว็บ
+    // 🌟 ปรับวิธีปัดเศษให้ยุติธรรมขึ้น (ใช้ Math.round ปัดเศษใกล้เคียง)
     let finalAmt = currentTotal;
     if (config.rounding === 'tens') {
-      finalAmt = Math.ceil(currentTotal / 10) * 10; // ปัดขึ้นหลักสิบ
+      finalAmt = Math.round(currentTotal / 10) * 10; // ปัดเป็นหลักสิบใกล้เคียง
     } else if (config.rounding === 'hundreds') {
-      finalAmt = Math.ceil(currentTotal / 100) * 100; // ปัดขึ้นหลักร้อย
+      finalAmt = Math.round(currentTotal / 100) * 100; // ปัดเป็นหลักร้อยใกล้เคียง
     }
 
+    summary.roundingAdjustment = finalAmt - currentTotal; // คำนวณส่วนต่าง (+ หรือ -)
     summary.finalAmount = finalAmt;
     return summary;
   });

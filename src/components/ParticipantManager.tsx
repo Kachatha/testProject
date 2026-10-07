@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Person } from "../types";
-import { Trash2, Edit2 } from "lucide-react";
+import { Person } from "../types"; // ถ้าไฟล์อยู่ในโฟลเดอร์ components ให้ใช้ "../types" แต่ถ้าอยู่ร่วมกับ types.ts ให้ใช้ "./types"
+import { Trash2, Edit2, Plus } from "lucide-react";
 
 interface ParticipantManagerProps {
   persons: Person[];
@@ -11,107 +11,91 @@ interface ParticipantManagerProps {
 }
 
 export default function ParticipantManager({ persons, setPersons, removePerson }: ParticipantManagerProps) {
-  const [guestCount, setGuestCount] = useState("3");
   const [newFriendName, setNewFriendName] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
 
-  const handleGenerateGuests = () => {
-    const count = parseInt(guestCount) || 3;
-    const newGuests: Person[] = [];
-    for (let i = 1; i <= count; i++) {
-      newGuests.push({
-        id: `g-${Date.now()}-${i}`,
-        name: i === 1 ? "ฉันเอง" : `เพื่อนคนที่ ${i}`
-      });
+  const handleAddFriend = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmedName = newFriendName.trim();
+    
+    if (!trimmedName) {
+      setErrorMsg("กรุณากรอกชื่อเพื่อนก่อนกดเพิ่ม");
+      return;
     }
-    setPersons(newGuests);
-  };
 
-  const handleAddFriend = () => {
-    if (!newFriendName.trim()) return;
-    setPersons(prev => [...prev, { id: Date.now().toString(), name: newFriendName.trim() }]);
+    let finalName = trimmedName;
+    let count = 1;
+    while (persons.some(p => p.name.toLowerCase() === finalName.toLowerCase())) {
+      finalName = `${trimmedName} (${count})`;
+      count++;
+    }
+
+    setPersons(prev => [...prev, { id: Date.now().toString(), name: finalName }]);
     setNewFriendName("");
+    setErrorMsg("");
   };
 
   const handleSaveEdit = (id: string) => {
-    if (!editingName.trim()) return;
-    setPersons(prev => prev.map(p => p.id === id ? { ...p, name: editingName.trim() } : p));
+    const trimmed = editingName.trim();
+    if (!trimmed) return;
+
+    setPersons(prev => prev.map(p => p.id === id ? { ...p, name: trimmed } : p));
     setEditingId(null);
   };
 
   return (
     <div className="space-y-4">
-      <h2 className="text-sm font-bold text-slate-700 mb-2">1. จัดการรายชื่อเพื่อนร่วมโต๊ะ</h2>
+      <h2 className="text-sm font-bold text-slate-700 mb-2">1. คนในโต๊ะ</h2>
 
-      {/* จัดการลำดับความเหลื่อมล้ำ: สเต็ปกรอกจำนวนดิ่งลงเป็นระเบียบแบบภาพที่ 2 เคลียร์จุดเบี้ยว */}
-      <div className="space-y-2.5">
-        <div>
-          <label className="block text-xs font-semibold text-slate-500 mb-1">จำนวนคนทั้งหมด (รวมคุณ):</label>
+      <form onSubmit={handleAddFriend} className="flex flex-col gap-1.5 mb-4">
+        <div className="flex gap-2">
           <input
-            type="number"
-            min="1"
-            value={guestCount}
-            onChange={(e) => setGuestCount(e.target.value)}
-            className="w-full mb-2"
-            placeholder="3"
+            type="text"
+            placeholder="พิมพ์ชื่อเพื่อน..."
+            value={newFriendName}
+            onChange={(e) => { setNewFriendName(e.target.value); setErrorMsg(""); }}
+            className="text-sm flex-1 p-3 border border-slate-200 rounded-2xl bg-slate-50/50 focus:bg-white focus:border-[#ea580c] focus:outline-none transition-all"
           />
           <button
-            type="button"
-            onClick={handleGenerateGuests}
-            className="w-full py-2.5 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700 transition-all text-center block"
+            type="submit"
+            className="px-5 py-3 rounded-2xl text-sm font-bold transition-all border-none flex items-center gap-1 cursor-pointer bg-[#ea580c] text-white hover:bg-[#c2410c] shadow-sm"
           >
-            กำหนดชื่อเพื่อนและสุ่มรายชื่อเริ่มต้น
+            <Plus size={16} /> เพิ่มคน
           </button>
         </div>
+        {errorMsg && <p className="text-[11px] text-red-500 font-medium">⚠️ {errorMsg}</p>}
+      </form>
 
-        <div className="border-t border-slate-100 my-2 pt-2">
-          <label className="block text-xs font-semibold text-slate-500 mb-1">เพิ่มชื่อเพื่อนรายคนเพิ่มเติม:</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="พิมพ์ชื่อเพื่อน..."
-              value={newFriendName}
-              onChange={(e) => setNewFriendName(e.target.value)}
-              className="text-xs flex-1"
-            />
-            <button
-              type="button"
-              onClick={handleAddFriend}
-              className="px-4 py-2 bg-[#ea580c] text-white rounded-xl text-xs font-bold hover:bg-[#c2410c] transition-all border-none"
-            >
-              + เพิ่มชื่อ
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* รายชื่อเพื่อนในกลุ่ม ด้านล่าง */}
-      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 pt-1">
+      <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
         {persons.map((p) => (
-          <div key={p.id} className="flex items-center justify-between p-2 bg-white border border-slate-100 rounded-xl text-xs shadow-sm">
+          // 🌟 ปรับกล่องรายชื่อเพื่อนให้เป็นสี่เหลี่ยมมน (Rounded-2xl)
+          <div key={p.id} className="flex items-center justify-between p-3 bg-white/80 border border-slate-100 rounded-2xl text-sm shadow-sm transition-all hover:bg-white">
             {editingId === p.id ? (
-              <div className="flex gap-1.5 w-full items-center mr-2">
+              <div className="flex gap-2 w-full items-center">
                 <input
                   type="text"
                   value={editingName}
                   onChange={(e) => setEditingName(e.target.value)}
-                  className="py-1 px-2 border rounded-md text-xs w-full focus:border-slate-400 focus:outline-none"
+                  className="flex-1 py-1.5 px-3 border border-slate-200 rounded-xl text-sm focus:border-[#ea580c] focus:outline-none m-0"
                   autoFocus
                 />
-                <button onClick={() => handleSaveEdit(p.id)} className="bg-green-600 text-white px-2 py-1 rounded-md font-bold text-[10px] border-none">บันทึก</button>
-                <button onClick={() => setEditingId(null)} className="bg-slate-200 text-slate-600 px-2 py-1 rounded-md text-[10px] border-none">ยกเลิก</button>
+                <button type="button" onClick={() => handleSaveEdit(p.id)} className="px-3 py-1.5 rounded-xl font-bold text-xs bg-[#ea580c] text-white border-none cursor-pointer">บันทึก</button>
+                <button type="button" onClick={() => setEditingId(null)} className="px-2.5 py-1.5 rounded-xl font-medium text-xs bg-slate-100 text-slate-600 border-none cursor-pointer">ยกเลิก</button>
               </div>
             ) : (
               <>
-                <span className="font-bold text-slate-700 ml-1">{p.name}</span>
+                <span className="font-bold text-slate-700 ml-1">👤 {p.name}</span>
                 <div className="flex gap-1">
-                  <button type="button" onClick={() => { setEditingId(p.id); setEditingName(p.name); }} className="p-1 text-slate-400 hover:text-indigo-600 transition-all border-none bg-transparent">
-                    <Edit2 size={12} />
+                  <button type="button" onClick={() => { setEditingId(p.id); setEditingName(p.name); }} className="p-1.5 text-slate-400 hover:text-indigo-600 transition-all border-none bg-transparent cursor-pointer">
+                    <Edit2 size={14} />
                   </button>
-                  <button type="button" onClick={() => removePerson(p.id)} className="p-1 text-slate-400 hover:text-red-500 transition-all border-none bg-transparent">
-                    <Trash2 size={12} />
-                  </button>
+                  {p.id !== '1' && (
+                    <button type="button" onClick={() => removePerson(p.id)} className="p-1.5 text-slate-400 hover:text-red-500 transition-all border-none bg-transparent cursor-pointer">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               </>
             )}
