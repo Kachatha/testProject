@@ -128,12 +128,21 @@ export default function FoodItem({ persons, items, addItem, removeItem, updateIt
         )}
 
         <div>
-          <label className="block text-xs font-semibold text-slate-400 mb-2">เลือกเพื่อนร่วมหารเมนูนี้:</label>
-          <div className="flex flex-col gap-2 w-full sharekub-participant-list">
+          <div className="flex justify-between items-center mb-2">
+            <label className="text-xs font-semibold text-slate-500">ใครกินเมนูนี้บ้าง?</label>
+            {/* 🌟 ปุ่มเลือกทุกคน / ยกเลิกทุกคน */}
+            <button
+              type="button"
+              onClick={() => sharedBy.length === persons.length ? setSharedBy([]) : setSharedBy(persons.map(p => p.id))}
+              className="text-[11px] font-bold text-[#ea580c] bg-orange-50 px-2.5 py-1 rounded-lg border-none cursor-pointer"
+            >
+              {sharedBy.length === persons.length ? "ยกเลิกทั้งหมด" : "☑ เลือกทุกคน"}
+            </button>
+          </div>
+          <div className="flex flex-col gap-2 w-full">
             {persons.map((person) => {
               const isSelected = sharedBy.includes(person.id);
               return (
-                // 🌟 ปรับปุ่มเลือกเพื่อนให้เป็นสี่เหลี่ยมมน (Rounded-2xl)
                 <button
                   key={person.id}
                   type="button"
@@ -144,7 +153,6 @@ export default function FoodItem({ persons, items, addItem, removeItem, updateIt
                     color: isSelected ? "#ea580c" : "#475569", 
                     border: isSelected ? "2px solid #f97316" : "1px solid rgba(226, 232, 240, 0.8)", 
                     fontWeight: isSelected ? "700" : "500",
-                    boxShadow: isSelected ? "0 4px 12px rgba(249, 115, 22, 0.08)" : "none"
                   }}
                 >
                   <span className="flex items-center justify-between w-full">

@@ -7,22 +7,23 @@ export interface FoodItem {
   id: string;
   name: string;
   price: number;
-  quantity: number; //
-  sharedBy: string[]; // เก็บ id ของ Person ที่กินเมนูนี้
+  quantity: number;
+  sharedBy: string[];
 }
 
 export interface BillConfig {
   promptPay: string;
   vat: number;
-  serviceCharge: number; 
-  rounding: 'none' | 'tens' | 'hundreds'; // ไม่ปัด, ปัดหลักสิบ, ปัดหลักร้อย
+  serviceCharge: number;
+  rounding: "none" | "whole"; // เปลี่ยนให้เหลือแค่ "ไม่ปัดเศษ" กับ "ปัดเป็นจำนวนเต็ม"
 }
 
 export interface PersonSummary {
   person: Person;
   totalBeforeTax: number;
   totalWithTax: number;
-  finalAmount: number; // ยอดสุทธิหลังปัดเศษ
+  finalAmount: number; 
+  roundingAdjustment: number; 
   items: { name: string; cost: number }[];
 }
 
@@ -32,24 +33,4 @@ export interface BillHistoryItem {
   title: string;
   grandTotal: number;
   summaries: PersonSummary[];
-}
-
-export interface FavoriteMenu {
-  id: string;
-  name: string;
-  price: number;
-}
-
-export interface FavoriteShop {
-  id: string;
-  name: string;
-  menus: FavoriteMenu[]; // เก็บรายการอาหารโปรดภายในร้านนั้นๆ
-}
-export interface PersonSummary {
-  person: Person;
-  totalBeforeTax: number;
-  totalWithTax: number;
-  finalAmount: number; 
-  roundingAdjustment: number; 
-  items: { name: string; cost: number }[];
 }

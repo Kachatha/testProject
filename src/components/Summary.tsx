@@ -2,70 +2,78 @@
 
 import { QRCodeSVG } from "qrcode.react";
 import generatePayload from "promptpay-qr";
-import { PersonSummary } from "../types";
+import { PersonSummary, BillConfig } from "../types";
+import { useState } from "react";
 
 interface Props {
   summaries: PersonSummary[];
-  promptPay: string;
+  config: BillConfig;
+  setConfig: React.Dispatch<React.SetStateAction<BillConfig>>;
 }
 
-export default function Summary({ summaries, promptPay }: Props) {
+export default function Summary({ summaries, config, setConfig }: Props) {
+  const [showQRFor, setShowQRFor] = useState<string | null>(null);
+
   if (summaries.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-xl">
+    <div className="bg-white/50 rounded-2xl">
+      {/* 🌟 ย้ายการกรอก PromptPay มาใน Flow หลัก */}
+      <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-2xl">
+        <label className="block text-xs font-bold text-[#ea580c] mb-2">💳 ตั้งค่า PromptPay เพื่อรับเงิน (ไม่บังคับ)</label>
+        <input
+          type="text"
+          placeholder="กรอกเบอร์โทร หรือ เลขบัตรปชช."
+          value={config.promptPay}
+          onChange={(e) => setConfig(prev => ({ ...prev, promptPay: e.target.value.replace(/\D/g, "") }))}
+          className="w-full bg-white"
+        />
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {summaries.map(summary => {
-          if (summary.totalBeforeTax === 0) return null;
+          if (summary.totalBeforeTax === 0 && summary.finalAmount === 0) return null;
           
-          const qrPayload = promptPay ? generatePayload(promptPay.trim(), { amount: summary.finalAmount }) : "";
+          const qrPayload = config.promptPay ? generatePayload(config.promptPay.trim(), { amount: summary.finalAmount }) : "";
 
           return (
-            <div key={summary.person.id} className="border border-gray-200 p-4 rounded-xl flex flex-col bg-gray-50/50 shadow-sm relative overflow-hidden">
+            <div key={summary.person.id} className="border border-slate-200 p-4 rounded-3xl flex flex-col bg-white shadow-sm">
+              <p className="font-bold text-slate-800 text-lg mb-3 border-b border-slate-100 pb-2">👤 {summary.person.name}</p>
               
-              <p className="font-bold text-gray-800 text-base text-center mb-3">👤 {summary.person.name}</p>
-              
-              {/* รายการอาหารย่อย */}
-              <div className="bg-white border border-gray-100 rounded-lg p-2.5 mb-2 space-y-1.5 text-xs text-gray-600 shadow-sm">
+              {/* 🌟 ใบเสร็จแจกแจงแบบโปร่งใส (Transparency) */}
+              <div className="space-y-1.5 text-[11px] text-slate-600 mb-4 font-mono">
                 {summary.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center border-b border-gray-50 pb-1 last:border-0 last:pb-0">
-                    <span className="truncate pr-2">- {item.name}</span>
-                    <span className="font-medium text-gray-800 shrink-0">฿{item.cost.toFixed(2)}</span>
+                  <div key={idx} className="flex justify-between items-center">
+                    <span className="truncate pr-2">{item.name}</span>
+                    <span className="font-medium shrink-0">฿{item.cost.toFixed(2)}</span>
                   </div>
                 ))}
-              </div>
-
-              {/* 🌟 แสดงรายละเอียดการคำนวณและส่วนต่างการปัดเศษเพื่อความโปร่งใส */}
-              <div className="bg-slate-100/70 p-2 rounded-lg text-[11px] text-slate-500 space-y-1 mb-3">
-                <div className="flex justify-between">
-                  <span>ยอดคำนวณจริง (รวม VAT/SC):</span>
-                  <span>฿{summary.totalWithTax.toFixed(2)}</span>
+                <div className="border-t border-dashed border-slate-200 pt-1.5 mt-1.5 flex justify-between font-bold text-slate-800 text-xs">
+                  <span>รวมสุทธิ</span>
+                  <span>฿{summary.finalAmount.toFixed(2)}</span>
                 </div>
-                {summary.roundingAdjustment !== 0 && (
-                  <div className="flex justify-between text-amber-600 font-medium">
-                    <span>ส่วนต่างจากการปัดเศษ:</span>
-                    <span>{summary.roundingAdjustment > 0 ? `+฿${summary.roundingAdjustment.toFixed(2)}` : `-฿${Math.abs(summary.roundingAdjustment).toFixed(2)}`}</span>
-                  </div>
-                )}
               </div>
 
-              {/* ยอดสุทธิ */}
-              <div className="text-center mb-1">
-                <span className="text-[10px] text-gray-400 block mb-0.5">ยอดชำระสุทธิ</span>
-                <p className="text-2xl font-black text-[#ea580c]">
-                  ฿{summary.finalAmount.toFixed(2)}
-                </p>
-              </div>
-              
-              {/* QR Code */}
-              {promptPay ? (
-                 <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center mt-3">
-                   <QRCodeSVG value={qrPayload} size={110} level="M" />
-                   <p className="text-[10px] text-center mt-2 font-semibold text-gray-400">สแกนจ่ายได้เลย</p>
-                 </div>
+              {/* ปุ่มสร้าง QR Code */}
+              {config.promptPay ? (
+                <>
+                  <button 
+                    onClick={() => setShowQRFor(showQRFor === summary.person.id ? null : summary.person.id)}
+                    className="mt-auto py-2.5 w-full rounded-xl text-xs font-bold bg-slate-800 text-white hover:bg-slate-700 transition-colors"
+                  >
+                    {showQRFor === summary.person.id ? "ซ่อน QR Code" : "💳 สร้าง QR ให้คนนี้สแกนจ่าย"}
+                  </button>
+                  
+                  {showQRFor === summary.person.id && (
+                    <div className="mt-3 p-3 bg-white rounded-xl border border-slate-100 shadow-inner flex flex-col items-center animate-in fade-in zoom-in duration-200">
+                      <QRCodeSVG value={qrPayload} size={130} level="M" />
+                      <p className="text-[10px] text-slate-400 font-semibold mt-2">ยอดสแกนจ่าย ฿{summary.finalAmount.toFixed(2)}</p>
+                    </div>
+                  )}
+                </>
               ) : (
-                <div className="flex items-center justify-center bg-slate-100 text-slate-400 p-3 rounded-xl w-full mt-3 border border-slate-200 border-dashed text-xs text-center">
-                  ยังไม่ได้ใส่เบอร์ PromptPay
+                <div className="mt-auto text-[10px] text-center text-slate-400 bg-slate-50 py-2 rounded-xl border border-slate-100">
+                  ใส่เบอร์ PromptPay ด้านบนเพื่อสร้าง QR
                 </div>
               )}
             </div>
