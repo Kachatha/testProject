@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { useSession, signIn } from "next-auth/react"; 
+import React, { useState, useEffect, useMemo } from "react";
+import { useSession, signIn } from "next-auth/react";
 import ParticipantManager from "../components/ParticipantManager";
 import FoodItem from "../components/FoodItem";
 import Summary from "../components/Summary";
 import BillSetup from "../components/BillSetup";
 import BillHistory from "../components/History";
-import { AuthButtons } from "./auth-buttons"; 
+import { AuthButtons } from "./auth-buttons";
 import { Person, FoodItem as FoodItemType, BillConfig, BillHistoryItem } from "../types";
 import { calculateBill } from "../utils/calculator";
 import { Sparkles, PlusCircle, History as HistoryIcon, RotateCcw, Lock, LogIn, Settings, ChevronDown, ChevronRight, Receipt, Copy } from "lucide-react";
@@ -15,22 +15,80 @@ import { Sparkles, PlusCircle, History as HistoryIcon, RotateCcw, Lock, LogIn, S
 export default function ShareKubApp() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
-  const [history, setHistory] = useState<BillHistoryItem[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
+  // 🌟 กำหนดค่าเริ่มต้นเป็นค่าว่าง (ป้องกัน Hydration Error)
   const [billName, setBillName] = useState("");
   const [persons, setPersons] = useState<Person[]>([{ id: "1", name: "คุณ" }, { id: "2", name: "เพื่อน 1" }]);
   const [items, setItems] = useState<FoodItemType[]>([]);
   const [config, setConfig] = useState<BillConfig>({ promptPay: "", vat: 0, serviceCharge: 0, rounding: "none" });
+  const [history, setHistory] = useState<BillHistoryItem[]>([]);
+
+  // 🌟 โหลดข้อมูลบิลปัจจุบันจาก localStorage เฉพาะฝั่ง Client
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedBill = localStorage.getItem("sharekub_billName");
+      if (savedBill) setBillName(savedBill);
+      
+      const savedPersons = localStorage.getItem("sharekub_persons");
+      if (savedPersons) {
+        try { setPersons(JSON.parse(savedPersons)); } catch (e) {}
+      }
+
+      const savedItems = localStorage.getItem("sharekub_items");
+      if (savedItems) {
+        try { setItems(JSON.parse(savedItems)); } catch (e) {}
+      }
+
+      const savedConfig = localStorage.getItem("sharekub_config");
+      if (savedConfig) {
+        try { setConfig(JSON.parse(savedConfig)); } catch (e) {}
+      }
+    }
+  }, []);
+
+  // 🌟 โหลดและแสดงประวัติ เฉพาะตอนที่ "ล็อกอินแล้ว" เท่านั้น
+  useEffect(() => {
+    if (typeof window !== "undefined" && session?.user) {
+      const savedHistory = localStorage.getItem("sharekub_history");
+      if (savedHistory) {
+        try { setHistory(JSON.parse(savedHistory)); } catch (e) {}
+      }
+    } else {
+      setHistory([]); // ถ้าไม่ได้ล็อกอิน เคลียร์ประวัติไม่ให้แสดงผล
+    }
+  }, [session]);
+
+  // 🌟 บันทึกข้อมูลบิลปัจจุบันอัตโนมัติ
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sharekub_billName", billName);
+      localStorage.setItem("sharekub_persons", JSON.stringify(persons));
+      localStorage.setItem("sharekub_items", JSON.stringify(items));
+      localStorage.setItem("sharekub_config", JSON.stringify(config));
+    }
+  }, [billName, persons, items, config]);
+
+  // 🌟 บันทึกประวัติเฉพาะเมื่อล็อกอิน
+  useEffect(() => {
+    if (typeof window !== "undefined" && session?.user && history.length > 0) {
+      localStorage.setItem("sharekub_history", JSON.stringify(history));
+    }
+  }, [history, session]);
 
   const removePerson = (id: string) => {
     setPersons(prev => prev.filter(p => p.id !== id));
     setItems(prev => prev.map(item => ({ ...item, sharedBy: item.sharedBy.filter(pId => pId !== id) })));
   };
-  const addItem = (name: string, price: number, quantity: number, sharedBy: string[]) => setItems(prev => [...prev, { id: Date.now().toString(), name, price, quantity, sharedBy }]);
+
+  const addItem = (name: string, price: number, quantity: number, sharedBy: string[]) => 
+    setItems(prev => [...prev, { id: Date.now().toString(), name, price, quantity, sharedBy }]);
+
   const removeItem = (id: string) => setItems(prev => prev.filter(item => item.id !== id));
-  const updateItem = (id: string, name: string, price: number, quantity: number, sharedBy: string[]) => setItems(prev => prev.map(item => item.id === id ? { ...item, name, price, quantity, sharedBy } : item));
+
+  const updateItem = (id: string, name: string, price: number, quantity: number, sharedBy: string[]) => 
+    setItems(prev => prev.map(item => item.id === id ? { ...item, name, price, quantity, sharedBy } : item));
   
   const removeHistory = (id: string) => {
     if (window.confirm("ลบประวัติบิลนี้หรือไม่?")) {
@@ -48,11 +106,25 @@ export default function ShareKubApp() {
   const grandTotal = summaries.reduce((sum, s) => sum + s.finalAmount, 0);
   const roundingDiff = grandTotal - grandTotalBeforeRounding;
 
+  const handleTabChange = (tab: 'current' | 'history') => {
+    if (tab === 'history' && !session?.user) {
+      setShowLoginModal(true);
+      return;
+    }
+    setActiveTab(tab);
+  };
+
   const handleNewBill = () => {
     if (items.length > 0 && !window.confirm(`ล้างข้อมูลอาหารทั้งหมด ${items.length} รายการ?`)) return;
     setItems([]);
     setPersons([{ id: "1", name: "คุณ" }, { id: "2", name: "เพื่อน 1" }]);
     setBillName("");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("sharekub_billName");
+      localStorage.removeItem("sharekub_persons");
+      localStorage.removeItem("sharekub_items");
+      localStorage.removeItem("sharekub_config");
+    }
     setActiveTab('current');
   };
 
@@ -110,7 +182,7 @@ export default function ShareKubApp() {
           {/* Tab Controls */}
           <div className="flex items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-full border border-slate-800">
             <button 
-              onClick={() => setActiveTab('current')}
+              onClick={() => handleTabChange('current')}
               className={`px-4 py-2 rounded-full text-xs font-bold transition-all border-none cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'current' 
                   ? 'bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/20' 
@@ -120,7 +192,7 @@ export default function ShareKubApp() {
               <PlusCircle size={14} /> บิลปัจจุบัน
             </button>
             <button 
-              onClick={() => setActiveTab('history')}
+              onClick={() => handleTabChange('history')}
               className={`px-4 py-2 rounded-full text-xs font-bold transition-all border-none cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'history' 
                   ? 'bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/20' 
@@ -143,7 +215,7 @@ export default function ShareKubApp() {
           </div>
         </header>
 
-        {/* Modal เตือน Guest เมื่อกดบันทึก */}
+        {/* Modal เตือนเมื่อยังไม่ได้ล็อกอิน */}
         {showLoginModal && (
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="glass-panel p-8 max-w-sm w-full text-center space-y-5 border border-emerald-500/30">
@@ -151,9 +223,9 @@ export default function ShareKubApp() {
                 <Lock size={26} />
               </div>
               <div>
-                <h3 className="text-lg font-extrabold text-white mb-1">เข้าสู่ระบบเพื่อบันทึกบิล</h3>
+                <h3 className="text-lg font-extrabold text-white mb-1">เข้าสู่ระบบเพื่อใช้งานส่วนนี้</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  กรุณาเข้าสู่ระบบด้วย Google เพื่อบันทึกประวัติบิลนี้ไว้ดูย้อนหลังได้ทุกที่
+                  กรุณาเข้าสู่ระบบด้วย Google เพื่อบันทึกบิลและเรียกดูประวัติการหารย้อนหลัง
                 </p>
               </div>
               <div className="flex flex-col gap-2 pt-2">
@@ -179,15 +251,13 @@ export default function ShareKubApp() {
             
             {/* Left Column (Inputs) */}
             <div className="lg:col-span-7 space-y-6">
-              
-              {/* Bill Title Input */}
               <div className="glass-panel p-4">
                 <input 
                   type="text" 
                   placeholder="✨ พิมพ์ชื่อร้านหรือชื่อบิลที่นี่... (เช่น หมูกระทะเสาร์นี้)" 
                   value={billName} 
                   onChange={e => setBillName(e.target.value)} 
-                  className="w-full text-center text-base font-bold bg-transparent border-none text-emerald-400 placeholder:text-slate-500" 
+                  className="w-full text-center text-base font-bold bg-transparent border-none text-emerald-400 placeholder:text-slate-500 outline-none" 
                 />
               </div>
 
@@ -221,7 +291,6 @@ export default function ShareKubApp() {
 
             {/* Right Column (Live Summary Sticky) */}
             <div className="lg:col-span-5 lg:sticky lg:top-8 space-y-6">
-              
               <div className="glass-panel-accent p-6 relative overflow-hidden">
                 <div className="flex justify-between items-center mb-6 border-b border-slate-800/80 pb-4">
                   <h2 className="text-base font-extrabold text-white flex items-center gap-2">
@@ -246,7 +315,7 @@ export default function ShareKubApp() {
                       <div className="flex justify-between"><span>ค่าอาหารรวม</span> <span className="text-slate-200 font-mono">฿{totalFoodPrice.toFixed(2)}</span></div>
                       {config.serviceCharge > 0 && <div className="flex justify-between"><span>Service Charge ({config.serviceCharge}%)</span> <span className="text-slate-200 font-mono">฿{serviceChargeAmount.toFixed(2)}</span></div>}
                       {config.vat > 0 && <div className="flex justify-between"><span>VAT ({config.vat}%)</span> <span className="text-slate-200 font-mono">฿{vatAmount.toFixed(2)}</span></div>}
-                      {roundingDiff !== 0 && <div className="flex justify-between text-amber-400"><span>การปัดเศษ</span> <span className="font-mono">{roundingDiff > 0 ? '+' : ''}฿{roundingDiff.toFixed(2)}</span></div>}
+                      {roundingDiff !== 0 && <div className="flex justify-between text-amber-400"><span>การปัดเศษ (ปัดขึ้น)</span> <span className="font-mono">+{roundingDiff.toFixed(2)}</span></div>}
                     </div>
 
                     <div className="space-y-2.5 mb-6">
@@ -297,13 +366,26 @@ export default function ShareKubApp() {
 
         {activeTab === 'history' && (
           <div className="max-w-3xl mx-auto glass-panel p-6">
-            {history.length > 0 ? (
-              <BillHistory history={history} onRemoveHistory={removeHistory} />
+            {session?.user ? (
+              history.length > 0 ? (
+                <BillHistory history={history} onRemoveHistory={removeHistory} />
+              ) : (
+                <div className="text-center py-20 text-slate-500 space-y-3">
+                  <HistoryIcon size={48} className="mx-auto text-slate-700 stroke-1" />
+                  <p className="text-sm font-bold text-slate-400">ยังไม่มีประวัติการหารบิล</p>
+                  <p className="text-xs text-slate-600">บิลที่คุณกดบันทึกจะแสดงรายชื่อและยอดชำระที่นี่</p>
+                </div>
+              )
             ) : (
               <div className="text-center py-20 text-slate-500 space-y-3">
-                <HistoryIcon size={48} className="mx-auto text-slate-700 stroke-1" />
-                <p className="text-sm font-bold text-slate-400">ยังไม่มีประวัติการหารบิล</p>
-                <p className="text-xs text-slate-600">บิลที่คุณกดบันทึกจะแสดงรายชื่อและยอดชำระที่นี่</p>
+                <Lock size={48} className="mx-auto text-slate-700 stroke-1" />
+                <p className="text-sm font-bold text-slate-400">กรุณาเข้าสู่ระบบเพื่อดูประวัติการหารบิล</p>
+                <button
+                  onClick={() => signIn("google")}
+                  className="px-6 py-2.5 bg-emerald-500 text-slate-950 rounded-xl text-xs font-bold border-none cursor-pointer hover:bg-emerald-400 transition-all"
+                >
+                  เข้าสู่ระบบด้วย Google
+                </button>
               </div>
             )}
           </div>
