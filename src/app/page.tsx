@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useSession, signIn } from "next-auth/react";
+import Image from "next/image";
 import ParticipantManager from "../components/ParticipantManager";
 import FoodItem from "../components/FoodItem";
 import Summary from "../components/Summary";
@@ -18,14 +19,12 @@ export default function ShareKubApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // 🌟 กำหนดค่าเริ่มต้นเป็นค่าว่าง (ป้องกัน Hydration Error)
   const [billName, setBillName] = useState("");
   const [persons, setPersons] = useState<Person[]>([{ id: "1", name: "คุณ" }, { id: "2", name: "เพื่อน 1" }]);
   const [items, setItems] = useState<FoodItemType[]>([]);
   const [config, setConfig] = useState<BillConfig>({ promptPay: "", vat: 0, serviceCharge: 0, rounding: "none" });
   const [history, setHistory] = useState<BillHistoryItem[]>([]);
 
-  // 🌟 โหลดข้อมูลบิลปัจจุบันจาก localStorage เฉพาะฝั่ง Client
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedBill = localStorage.getItem("sharekub_billName");
@@ -48,7 +47,6 @@ export default function ShareKubApp() {
     }
   }, []);
 
-  // 🌟 โหลดและแสดงประวัติ เฉพาะตอนที่ "ล็อกอินแล้ว" เท่านั้น
   useEffect(() => {
     if (typeof window !== "undefined" && session?.user) {
       const savedHistory = localStorage.getItem("sharekub_history");
@@ -56,11 +54,10 @@ export default function ShareKubApp() {
         try { setHistory(JSON.parse(savedHistory)); } catch (e) {}
       }
     } else {
-      setHistory([]); // ถ้าไม่ได้ล็อกอิน เคลียร์ประวัติไม่ให้แสดงผล
+      setHistory([]);
     }
   }, [session]);
 
-  // 🌟 บันทึกข้อมูลบิลปัจจุบันอัตโนมัติ
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("sharekub_billName", billName);
@@ -70,7 +67,6 @@ export default function ShareKubApp() {
     }
   }, [billName, persons, items, config]);
 
-  // 🌟 บันทึกประวัติเฉพาะเมื่อล็อกอิน
   useEffect(() => {
     if (typeof window !== "undefined" && session?.user && history.length > 0) {
       localStorage.setItem("sharekub_history", JSON.stringify(history));
@@ -140,12 +136,12 @@ export default function ShareKubApp() {
     const finalBillName = billName.trim() || `บิลวันที่ ${dateStr}`;
     const newHistory: BillHistoryItem = { id: Date.now().toString(), date: dateStr, title: `${finalBillName} (${persons.length} คน)`, grandTotal, summaries };
     setHistory(prev => [newHistory, ...prev]);
-    alert("💾 บันทึกบิลลงประวัติเรียบร้อยแล้ว!");
+    alert(" บันทึกบิลลงประวัติเรียบร้อยแล้ว!");
     setActiveTab('history');
   };
 
   const handleCopySummary = () => {
-    let text = `🍜 สรุปค่าอาหาร: ${billName.trim() || 'บิลปัจจุบัน'}\n\n`;
+    let text = ` สรุปค่าอาหาร: ${billName.trim() || 'บิลปัจจุบัน'}\n\n`;
     summaries.forEach(s => {
       if (s.finalAmount > 0) {
         text += `${s.person.name.padEnd(12, ' ')} ฿${s.finalAmount.toFixed(2)}\n`;
@@ -153,10 +149,10 @@ export default function ShareKubApp() {
     });
     text += `\nรวมยอดสุทธิ     ฿${grandTotal.toFixed(2)}`;
     if (config.promptPay) {
-      text += `\n\n💳 พร้อมเพย์: ${config.promptPay}`;
+      text += `\n\n พร้อมเพย์: ${config.promptPay}`;
     }
     navigator.clipboard.writeText(text);
-    alert("📋 คัดลอกข้อความสรุปยอดเรียบร้อยแล้ว!");
+    alert(" คัดลอกข้อความสรุปยอดเรียบร้อยแล้ว!");
   };
 
   return (
@@ -168,15 +164,14 @@ export default function ShareKubApp() {
         {/* Floating Navbar */}
         <header className="glass-panel p-4 mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <Sparkles className="w-5 h-5 text-slate-950 font-black" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-emerald-400">
-                SHAREKUB
-              </h1>
-              <p className="text-[11px] text-slate-400 font-medium">Smart Bill Splitter</p>
-            </div>
+            <Image 
+              src="/LOGO.png" 
+              alt="SHAREKUB Logo" 
+              width={140} 
+              height={40} 
+              className="object-contain" 
+              priority 
+            />
           </div>
 
           {/* Tab Controls */}
@@ -254,7 +249,7 @@ export default function ShareKubApp() {
               <div className="glass-panel p-4">
                 <input 
                   type="text" 
-                  placeholder="✨ พิมพ์ชื่อร้านหรือชื่อบิลที่นี่... (เช่น หมูกระทะเสาร์นี้)" 
+                  placeholder=" พิมพ์ชื่อร้านหรือชื่อบิลที่นี่... (เช่น หมูกระทะเสาร์นี้)" 
                   value={billName} 
                   onChange={e => setBillName(e.target.value)} 
                   className="w-full text-center text-base font-bold bg-transparent border-none text-emerald-400 placeholder:text-slate-500 outline-none" 
@@ -356,7 +351,7 @@ export default function ShareKubApp() {
                     onClick={handleSaveBill} 
                     className="w-full py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black rounded-2xl text-xs shadow-lg shadow-emerald-500/20 hover:opacity-90 transition-all flex justify-center items-center gap-2 border-none cursor-pointer"
                   >
-                    💾 บันทึกบิลลงประวัติ
+                     บันทึกบิลลงประวัติ
                   </button>
                 </div>
               )}

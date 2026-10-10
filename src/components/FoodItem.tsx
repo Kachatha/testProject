@@ -66,7 +66,7 @@ export default function FoodItem({ persons, items, addItem, removeItem, updateIt
   return (
     <div className="w-full">
       <h2 className="text-sm font-extrabold text-white mb-4 border-b border-slate-800 pb-2">
-        2. {editingId ? "✏️ แก้ไขรายการอาหาร" : "🍔 เพิ่มรายการอาหาร"}
+        2. {editingId ? " แก้ไขรายการอาหาร" : " เพิ่มรายการอาหาร"}
       </h2>
 
       <div className="space-y-4">
@@ -76,7 +76,7 @@ export default function FoodItem({ persons, items, addItem, removeItem, updateIt
             placeholder="ชื่ออาหาร"
             value={name}
             onChange={(e) => { setName(e.target.value); setErrorPrompt(""); }}
-            className="col-span-2 sm:col-span-2"
+            className="col-span-2 sm:col-span-2 cyber-input"
           />
           <input
             type="number"
@@ -84,7 +84,7 @@ export default function FoodItem({ persons, items, addItem, removeItem, updateIt
             placeholder="ราคา/จาน"
             value={price}
             onChange={(e) => { setPrice(e.target.value); setErrorPrompt(""); }}
-            className="col-span-1"
+            className="col-span-1 cyber-input"
           />
           <input
             type="number"
@@ -92,13 +92,13 @@ export default function FoodItem({ persons, items, addItem, removeItem, updateIt
             placeholder="จำนวน"
             value={quantity}
             onChange={(e) => { setQuantity(e.target.value); setErrorPrompt(""); }}
-            className="col-span-1 text-center font-bold"
+            className="col-span-1 cyber-input text-center font-bold"
           />
         </div>
 
         {errorPrompt && (
           <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-2xl text-xs font-semibold">
-            ⚠️ {errorPrompt}
+           {errorPrompt}
           </div>
         )}
 
@@ -135,7 +135,7 @@ export default function FoodItem({ persons, items, addItem, removeItem, updateIt
                   className={`participant-chip ${isSelected ? 'active' : ''}`}
                 >
                   <span className="flex items-center justify-between w-full">
-                    <span className="flex items-center gap-1.5">👤 {person.name}</span>
+                    <span className="flex items-center gap-1.5">{person.name}</span>
                     {isSelected && <span className="text-emerald-400 font-bold">✓</span>}
                   </span>
                 </button>
@@ -150,7 +150,7 @@ export default function FoodItem({ persons, items, addItem, removeItem, updateIt
             onClick={handleActionClick}
             className="flex-1 py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black rounded-2xl text-xs shadow-lg shadow-emerald-500/20 hover:opacity-90 transition-all border-none cursor-pointer"
           >
-            {editingId ? "💾 บันทึกการแก้ไข" : "+ เพิ่มรายการอาหารลงบิล"}
+            {editingId ? " บันทึกการแก้ไข" : "+ เพิ่มรายการอาหารลงบิล"}
           </button>
           {editingId && (
             <button
@@ -199,7 +199,7 @@ export default function FoodItem({ persons, items, addItem, removeItem, updateIt
                   const person = persons.find((p) => p.id === id);
                   return (
                     <span key={id} className="bg-slate-800 border border-slate-700/60 rounded-xl px-2.5 py-1 text-[10px] font-semibold text-slate-400">
-                      👤 {person ? person.name : "ไม่ทราบชื่อ"}
+                       {person ? person.name : "ไม่ทราบชื่อ"}
                     </span>
                   );
                 })}

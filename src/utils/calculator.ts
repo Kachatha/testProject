@@ -34,7 +34,7 @@ export function calculateBill(persons: Person[], items: FoodItem[], config: Bill
     const vatAmount = withSc * vatRate;
     let finalAmount = withSc + vatAmount;
 
-    // 🌟 ปัดขึ้นเสมอ (Always Round Up)
+    //  ปัดขึ้นเสมอ (Always Round Up)
     if (config.rounding === "whole") {
       finalAmount = Math.ceil(finalAmount);
     }

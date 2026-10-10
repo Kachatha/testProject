@@ -21,6 +21,7 @@ export default function BillSetup({ config, setConfig }: BillSetupProps) {
             type="number" 
             value={config.vat || ""} 
             onChange={(e) => handleChange("vat", parseFloat(e.target.value) || 0)} 
+            className="cyber-input"
           />
         </div>
         <div>
@@ -29,6 +30,7 @@ export default function BillSetup({ config, setConfig }: BillSetupProps) {
             type="number" 
             value={config.serviceCharge || ""} 
             onChange={(e) => handleChange("serviceCharge", parseFloat(e.target.value) || 0)} 
+            className="cyber-input"
           />
         </div>
       </div>

@@ -19,12 +19,13 @@ export default function Summary({ summaries, config, setConfig }: Props) {
   return (
     <div className="space-y-6">
       <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-        <label className="block text-xs font-bold text-emerald-400 mb-2">💳 ตั้งค่า PromptPay เพื่อรับเงิน (ไม่บังคับ)</label>
+        <label className="block text-xs font-bold text-emerald-400 mb-2"> ตั้งค่า PromptPay เพื่อรับเงิน (ไม่บังคับ)</label>
         <input
           type="text"
           placeholder="กรอกเบอร์โทร หรือ เลขบัตรปชช."
           value={config.promptPay}
           onChange={(e) => setConfig(prev => ({ ...prev, promptPay: e.target.value.replace(/\D/g, "") }))}
+          className="cyber-input"
         />
       </div>
 
@@ -68,7 +69,7 @@ export default function Summary({ summaries, config, setConfig }: Props) {
                   )}
                 </>
               ) : (
-                <div className="mt-auto text-[10px] text-center text-slate-500 bg-slate-950 py-2 rounded-xl border border-slate-800">
+                <div className="mt-auto text-[10px] text-center text-slate-500 bg-slate-950 py-2 rounded-2xl border border-slate-800">
                   ใส่เบอร์ PromptPay เพื่อสร้าง QR
                 </div>
               )}

@@ -36,7 +36,7 @@ export default function BillHistory({ history, onRemoveHistory }: BillHistoryPro
                   <span className="text-xs font-bold text-slate-200 block">{item.title}</span>
                   <div className="text-[10px] text-slate-500 flex items-center gap-3 font-mono">
                     <span className="flex items-center gap-1"><Calendar size={11} /> {item.date}</span>
-                    <span className="flex items-center gap-1"><CreditCard size={11} /> ยอดรวม: ฿{item.grandTotal.toFixed(2)}</span>
+                    <span className="flex items-center gap-1"><CreditCard size={11} /> ยอดรวม: {item.grandTotal.toFixed(2)} THB</span>
                   </div>
                 </div>
 

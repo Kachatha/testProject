@@ -11,7 +11,7 @@ export async function saveBillAction(newBill: any) {
 }
 
 export async function deleteBillAction(id: string) {
-  await requireUser(); // 🚨 ดักตรวจสิทธิ์ฝั่ง Server
+  await requireUser(); // ดักตรวจสิทธิ์ฝั่ง Server
   const index = billsDatabase.findIndex((b) => b.id === id);
   if (index > -1) billsDatabase.splice(index, 1);
   revalidatePath("/");

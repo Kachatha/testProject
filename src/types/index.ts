@@ -15,7 +15,7 @@ export interface BillConfig {
   promptPay: string;
   vat: number;
   serviceCharge: number;
-  rounding: "none" | "whole"; // เปลี่ยนให้เหลือแค่ "ไม่ปัดเศษ" กับ "ปัดเป็นจำนวนเต็ม"
+  rounding: "none" | "whole";
 }
 
 export interface PersonSummary {
