@@ -11,12 +11,12 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: "SHAREKUB - Smart Bill Splitter",
-  description: "หารบิลกับเพื่อนแบบสมาร์ท ดีไซน์ล้ำสมัย",
+  description: "หารบิลกับเพื่อนรายคน โดยไม่จำเป็นต้องใช้เครื่องคิดเลข",
 };
 
 export default function RootLayout({
-  children,
-}: {
+  children,}: 
+{
   children: React.ReactNode;
 }) {
   return (

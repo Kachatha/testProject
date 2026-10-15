@@ -1,2 +1,2 @@
-import { BillHistoryItem } from "./types"; // ระบุ path type ให้ตรงกับไฟล์ของคุณ
+import { BillHistoryItem } from "./types"; 
 export const billsDatabase: BillHistoryItem[] = [];
